@@ -33,14 +33,17 @@ public class MBR {
     /**
      * Compressed matrix. User-item-rating triples.
      */
-    private int [][]compressRatingMatrix;
+    private int[][] compressRatingMatrix;
 
     /**
      * The degree of users.(how many item he has rated).
      */
-    private int[]userDegrees;
+    private int[] userDegrees;
 
+    /**
+     * The average rating of the current item.
+     */
+    private double[] itemAverageRatings;
 
-    
 
 }
