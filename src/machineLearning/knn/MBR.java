@@ -149,6 +149,66 @@ public class MBR {
         for (int i = 0; i < numItems; i++) {
             itemAverageRatings[i] = tempItemTotalScore[i] / itemDegrees[i];
         }// Of for i
+    }// OF the first constructor
 
-    }
+    /**
+     * Set the radius.
+     *
+     * @param paraRadius The given radius.
+     */
+    public void setRadius(double paraRadius) {
+        if (paraRadius > 0) {
+            radius = paraRadius;
+        } else {
+            radius = 0.1;
+        }// OF if
+    }// Of setRadius
+
+    /**
+     * Leave-one-out prediction. The predicted values are stored in predictions.
+     *
+     * @see predictions
+     */
+    public void leaveOneOutPrediction() {
+        double tempItemAverageRating;
+        // Make each line of the code shorter.
+        int tempUser, tempItem, tempRating;
+        System.out.println("\r\nLeaveOneOutPrediction for radius " + radius);
+
+        numNoneNeighbors = 0;
+        for (int i = 0; i < numRatings; i++) {
+            tempUser = compressRatingMatrix[i][0];
+            tempItem = compressRatingMatrix[i][1];
+            tempRating = compressRatingMatrix[i][2];
+
+            // Step1. Recompute average rating of the current item.
+            tempItemAverageRating = (itemAverageRatings[tempItem] * itemDegrees[tempItem] - tempRating) / (itemDegrees[tempItem] - 1);
+
+            // Step2. Recompute neighbors, at the same time obtain the ratings
+            // OF neighbors
+            int tempNeighbors = 0;
+            double tempTotal = 0;
+            int tempComparedItem;
+            for (int j = userStartingIndices[tempUser]; j < userStartingIndices[tempUser + 1]; j++) {
+                tempComparedItem = compressRatingMatrix[j][1];
+                if (tempItem == tempComparedItem) {
+                    continue;// Ignore itself
+                }// Of if
+
+                if (Math.abs(tempItemAverageRating - itemAverageRatings[tempComparedItem]) < radius) {
+                    tempTotal += compressRatingMatrix[j][2];
+                    tempNeighbors++;
+                }// Of if
+            }// OF for j
+
+            //Step3. Predict as the average value of neighbors.
+            if (tempNeighbors > 0) {
+                predictions[i] = tempTotal / tempNeighbors;
+            } else {
+                predictions[i] = DEFAULT_RATING;
+                numNoneNeighbors++;
+            }// Of if
+        }// OF for i
+    }// of LeaveOneOutPrediction
+
 }
