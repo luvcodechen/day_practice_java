@@ -45,6 +45,12 @@ public class MBR {
     private int[][] compressRatingMatrix;
 
     /**
+     * User-Item Rating Matrix, transposed from the compressRatingMatrix.
+     * 用户-物品评分矩阵，为 compressRatingMatrix 的转置。
+     */
+    private int[][] userItemRatingMatrix;
+
+    /**
      * The degree of users.(how many items he has rated).
      */
     private int[] userDegrees;
@@ -55,7 +61,7 @@ public class MBR {
     private double[] userAverageRatings;
 
     /**
-     * The degree of items .
+     * The degree of items .(How many ratings it has.)
      */
     private int[] itemDegrees;
 
@@ -151,6 +157,87 @@ public class MBR {
         }// Of for i
     }// OF the first constructor
 
+
+
+    /**
+     * Construct the rating matrix and transpose it.
+     * 构造评分矩阵并进行转置。
+     *
+     * @param paraFilename   The rating filename.
+     * @param paraNumUsers   Number of users.
+     * @param paraNumItems   Number of items.
+     * @param paraNumRatings Number of ratings.
+     */
+    public MBR(String paraFilename, int paraNumUsers, int paraNumItems, int paraNumRatings,int paraConstructor) throws Exception {
+        // Step1. Initialize these arrays.
+        numItems = paraNumItems;
+        numUsers = paraNumUsers;
+        numRatings = paraNumRatings;
+
+        userDegrees = new int[numUsers];
+        userStartingIndices = new int[numUsers + 1];
+        userAverageRatings = new double[numUsers];
+        itemDegrees = new int[numItems];
+        compressRatingMatrix = new int[numRatings][3];
+        itemAverageRatings = new double[numItems];
+
+        predictions = new double[numRatings];
+
+        // Step2. Read the data file and construct the userItemRatingMatrix.
+        System.out.println("Reading " + paraFilename);
+        userItemRatingMatrix = new int[numItems][numUsers]; // Transposed matrix
+
+        File tempFile = new File(paraFilename);
+        if (!tempFile.exists()) {
+            System.out.println("File " + paraFilename + " does not exist");
+            System.exit(0);
+        }
+
+        BufferedReader tempBufReader = new BufferedReader(new FileReader(tempFile));
+        String tempString;
+        String[] tempStrArray;
+        int tempIndex = 0;
+        userStartingIndices[0] = 0;
+        userStartingIndices[numUsers] = numRatings;
+        while ((tempString = tempBufReader.readLine()) != null) {
+            tempStrArray = tempString.split(",");
+            int userIndex = Integer.parseInt(tempStrArray[0]);
+            int itemIndex = Integer.parseInt(tempStrArray[1]);
+            int rating = Integer.parseInt(tempStrArray[2]);
+
+            compressRatingMatrix[tempIndex][0] = userIndex;
+            compressRatingMatrix[tempIndex][1] = itemIndex;
+            compressRatingMatrix[tempIndex][2] = rating;
+
+            // Transpose and store in the userItemRatingMatrix
+            userItemRatingMatrix[itemIndex][userIndex] = rating;
+
+            userDegrees[userIndex]++;
+            itemDegrees[itemIndex]++;
+
+            if (tempIndex > 0 && compressRatingMatrix[tempIndex][0] != compressRatingMatrix[tempIndex - 1][0]) {
+                userStartingIndices[compressRatingMatrix[tempIndex][0]] = tempIndex;
+            }
+
+            tempIndex++;
+        }
+        tempBufReader.close();
+
+        // Calculate average ratings for users and items.
+        double[] tempUserTotalScore = new double[numUsers];
+        double[] tempItemTotalScore = new double[numItems];
+        for (int i = 0; i < numRatings; i++) {
+            tempUserTotalScore[compressRatingMatrix[i][0]] += compressRatingMatrix[i][2];
+            tempItemTotalScore[compressRatingMatrix[i][1]] += compressRatingMatrix[i][2];
+        }
+        for (int i = 0; i < numUsers; i++) {
+            userAverageRatings[i] = tempUserTotalScore[i] / userDegrees[i];
+        }
+        for (int i = 0; i < numItems; i++) {
+            itemAverageRatings[i] = tempItemTotalScore[i] / itemDegrees[i];
+        }
+    }
+
     /**
      * Set the radius.
      *
@@ -166,8 +253,6 @@ public class MBR {
 
     /**
      * Leave-one-out prediction. The predicted values are stored in predictions.
-     *
-     * @see predictions
      */
     public void leaveOneOutPrediction() {
         double tempItemAverageRating;
@@ -182,7 +267,8 @@ public class MBR {
             tempRating = compressRatingMatrix[i][2];
 
             // Step1. Recompute average rating of the current item.
-            tempItemAverageRating = (itemAverageRatings[tempItem] * itemDegrees[tempItem] - tempRating) / (itemDegrees[tempItem] - 1);
+            tempItemAverageRating =
+                    (itemAverageRatings[tempItem] * itemDegrees[tempItem] - tempRating) / (itemDegrees[tempItem] - 1);
 
             // Step2. Recompute neighbors, at the same time obtain the ratings
             // OF neighbors
@@ -211,4 +297,56 @@ public class MBR {
         }// OF for i
     }// of LeaveOneOutPrediction
 
-}
+    /**
+     * Compute the MAE based on the deviation of each leave-one-out.
+     */
+    public double computeMAE() throws Exception {
+        double tempTotalError = 0;
+        for (int i = 0; i < predictions.length; i++) {
+            tempTotalError += Math.abs(predictions[i] - compressRatingMatrix[i][2]);
+        }// OF for i
+
+        return tempTotalError / predictions.length;
+    }// OF computeMAE
+
+    /**
+     * ************************
+     * Compute the MAE based on the deviation of each leave-one-out.
+     * ************************
+     */
+    public double computeRSME() throws Exception {
+        double tempTotalError = 0;
+        for (int i = 0; i < predictions.length; i++) {
+            tempTotalError += (predictions[i] - compressRatingMatrix[i][2])
+                    * (predictions[i] - compressRatingMatrix[i][2]);
+        } // Of for i
+
+        double tempAverage = tempTotalError / predictions.length;
+
+        return Math.sqrt(tempAverage);
+    }// Of computeRSME
+
+    /**
+     * The entrance of the program.
+     *
+     * @param args Not used now.
+     */
+    public static void main(String[] args) {
+        try {
+            MBR tempRecommender = new MBR("E:\\java_code\\data\\sampledata\\movielens-943u1682m.txt", 943, 1682,
+                    100000,22);
+            for (double tempRadius = 0.2; tempRadius < 0.6; tempRadius += 0.1) {
+                tempRecommender.setRadius(tempRadius);
+
+                tempRecommender.leaveOneOutPrediction();
+                double tempMAE = tempRecommender.computeMAE();
+                double tempRSME = tempRecommender.computeRSME();
+
+                System.out.println("Radius = " + tempRadius + ", MAE = " + tempMAE + ", RSME = " + tempRSME
+                        + ", numNonNeighbors = " + tempRecommender.numNoneNeighbors);
+            } // Of for tempRadius
+        } catch (Exception ee) {
+            System.out.println(ee);
+        } // Of try
+    }// Of main
+}// Of class MBR
