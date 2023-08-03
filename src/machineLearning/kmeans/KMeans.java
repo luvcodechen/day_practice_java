@@ -3,6 +3,7 @@ package machineLearning.kmeans;
 import weka.core.Instances;
 
 import java.io.FileReader;
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -141,6 +142,13 @@ public class KMeans {
      * Clustering.
      */
     public void clustering() {
+        int[] tempOldClusterArray = new int[dataset.numInstances()];
+        tempOldClusterArray[0] = -1;
+        int[] tempClusterArray = new int[dataset.numInstances()];
+        Arrays.fill(tempClusterArray, 0);
+        double[][] tempCenters = new double[numClusters][dataset.numAttributes() - 1];
+
+        // Step1.
 
 
     }
