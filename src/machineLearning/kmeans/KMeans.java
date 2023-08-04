@@ -126,7 +126,7 @@ public class KMeans {
                 }// OF for i
                 break;
             case EUCLIDEAN:
-                for (int i = 0; i < dataset.numAttributes(); i++) {
+                for (int i = 0; i < dataset.numAttributes() - 1; i++) {
                     tempDifference = dataset.instance(paraI).value(i) - paraArray[i];
                     resultDistance += tempDifference * tempDifference;
                 }// OF for i
@@ -148,8 +148,92 @@ public class KMeans {
         Arrays.fill(tempClusterArray, 0);
         double[][] tempCenters = new double[numClusters][dataset.numAttributes() - 1];
 
-        // Step1.
+        // Step1. Initialize centers.
+        int[] tempRandomOrders = getRandomIndices(dataset.numInstances());
+        for (int i = 0; i < numClusters; i++) {
+            for (int j = 0; j < tempCenters[0].length; j++) {
+                tempCenters[i][j] = dataset.instance(tempRandomOrders[i]).value(j);
+            }// OF for j
+        }// Of for i
 
+        int[] tempClusterLengths = null;
+        while (!Arrays.equals(tempOldClusterArray, tempClusterArray)) {
+            System.out.println("New loop ...");
+            tempOldClusterArray = tempClusterArray;
+            tempClusterArray = new int[dataset.numInstances()];
 
-    }
-}
+            // Step2.1 Minimization. Assign cluster to each instance.
+            int tempNearestCenter;
+            double tempNearestDistance;
+            double tempDistance;
+
+            for (int i = 0; i < dataset.numInstances(); i++) {
+                tempNearestCenter = -1;
+                tempNearestDistance = Double.MAX_VALUE;
+
+                for (int j = 0; j < numClusters; j++) {
+                    tempDistance = distance(i, tempCenters[j]);
+                    if (tempNearestDistance > tempDistance) {
+                        tempNearestDistance = tempDistance;
+                        tempNearestCenter = j;
+                    }// Of if
+                }// OF  for j
+                tempClusterArray[i] = tempNearestCenter;
+            }// of for i
+
+            // Step2.2. Mean. Find new centers.
+            tempClusterLengths = new int[numClusters];
+            Arrays.fill(tempClusterLengths, 0);
+            double[][] tempNewCenters = new double[numClusters][dataset.numAttributes() - 1];
+            for (int i = 0; i < dataset.numInstances(); i++) {
+                for (int j = 0; j < tempNewCenters[0].length; j++) {
+                    tempNewCenters[tempClusterArray[i]][j] += dataset.instance(i).value(j);
+                }// OF for j
+                tempClusterLengths[tempClusterArray[i]]++;
+            }// Of for i
+
+            // Step2.3. Now average.
+            for (int i = 0; i < tempNewCenters.length; i++) {
+                for (int j = 0; j < tempNewCenters[0].length; j++) {
+                    tempNewCenters[i][j] /= tempClusterLengths[i];
+                }// Of for j
+            }// Of for i
+
+            System.out.println("Now the centers are: " + Arrays.deepToString(tempNewCenters));
+            tempCenters = tempNewCenters;
+        }// Of while
+
+        //Step3. Form clusters.
+        clusters = new int[numClusters][];
+        int[] tempCounters = new int[numClusters];
+        for (int i = 0; i < numClusters; i++) {
+            clusters[i] = new int[tempClusterLengths[i]];
+        }// Of for i
+
+        for (int i = 0; i < tempClusterArray.length; i++) {
+            clusters[tempClusterArray[i]][tempCounters[tempClusterArray[i]]] = i;
+            tempCounters[tempClusterArray[i]]++;
+        }//  of fot i
+
+        System.out.println("The clusters are:   " + Arrays.deepToString(clusters));
+    }// Of clustering
+
+    /**
+     * A test unit.
+     */
+    public static void testClustering() {
+        KMeans tempKmeans = new KMeans("E:\\java_code\\data\\sampledata\\iris.arff");
+        tempKmeans.setNumClusters(3);
+        tempKmeans.clustering();
+    }// Of testClustering
+
+    /**
+     * The entrance of the program.
+     *
+     * @param args NOt used now.
+     */
+    public static void main(String[] args) {
+        testClustering();
+
+    }// Of main
+}// Of class KMeans
