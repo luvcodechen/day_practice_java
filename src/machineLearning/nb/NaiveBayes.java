@@ -1,5 +1,6 @@
 package machineLearning.nb;
 
+import weka.core.Instance;
 import weka.core.Instances;
 
 import java.io.FileReader;
@@ -88,6 +89,12 @@ public class NaiveBayes {
      * Data type.
      */
     int dataType;
+
+    /**
+     * Nominal.
+     */
+    public static final int NOMINAL = 0;
+
 
     /**
      * Numerical.
@@ -188,17 +195,165 @@ public class NaiveBayes {
      * Calculate the conditional probabilities with Laplacian smooth.
      */
     public void calculateGaussianParameters() {
+        gaussianParameters = new GaussianParameters[numClasses][numConditions];
 
-    }
+        double[] tempValueArray = new double[numInstances];
+        int tempNumValues = 0;
+        double temSum = 0;
+
+        for (int i = 0; i < numClasses; i++) {
+            for (int j = 0; j < numConditions; j++) {
+                temSum = 0;
+
+                //Obtain values for this class
+                tempNumValues = 0;
+                for (int k = 0; k < numInstances; k++) {
+                    if ((int) dataset.instance(k).classValue() != i) {
+                        continue;
+                    }// OF if
+
+                    tempValueArray[tempNumValues] = dataset.instance(k).value(j);
+                    temSum += tempValueArray[tempNumValues];
+                    tempNumValues++;
+                }// Of for k
+
+                // Obtain parameters.
+                double tempMu = temSum / tempNumValues;
+
+                double tempSigma = 0;
+                for (int k = 0; k < tempNumValues; k++) {
+                    tempSigma += (tempValueArray[k] - tempMu) * (tempValueArray[k] - tempMu);
+                }// OF for k
+                tempSigma /= tempNumValues;
+                tempSigma = Math.sqrt(tempSigma);
+
+                gaussianParameters[i][j] = new GaussianParameters(tempMu, tempSigma);
+
+            }//Of for j
+        }// OF for i
+
+        System.out.println(Arrays.deepToString(gaussianParameters));
+    }// OF calculateGaussianParameters
 
     /**
-     * @param tempDataset
-     * @param paraTrainingFraction
-     * @return
+     * Classify all instances, the results are stored in predicts[].
      */
-    private static Instances[] splitTrainingTesting(Instances tempDataset, double paraTrainingFraction) {
-        return new Instances[0];
-    }
+    public void classify() {
+        predicts = new int[numInstances];
+        for (int i = 0; i < numInstances; i++) {
+            predicts[i] = classify(dataset.instance(i));
+        }// OF for i
+    }// of classify
+
+    /**
+     * Classify an instances.
+     */
+    public int classify(Instance paraInstance) {
+        if (dataType == NOMINAL) {
+            return classifyNominal(paraInstance);
+        } else if (dataType == NUMERICAL) {
+            return classifyNumerical(paraInstance);
+        }// OF if
+
+        return -1;
+    }//OF classify
+
+    /**
+     * Classify an instances with nominal data.
+     */
+    public int classifyNominal(Instance paraInstance) {
+        // Find the biggest one.
+        double tempBiggest = -10000;
+        int resultBestIndex = 0;
+        for (int i = 0; i < numClasses; i++) {
+            double tempPseudoProbability = Math.log(classDistributionLaplacian[i]);
+            for (int j = 0; j < numConditions; j++) {
+                int tempAttributeValue = (int) paraInstance.value(j);
+
+                tempPseudoProbability += Math.log(conditionalProbabilitiesLaplacian[i][j][tempAttributeValue]);
+            }// of for j
+
+            if (tempBiggest < tempPseudoProbability) {
+                tempBiggest = tempPseudoProbability;
+                resultBestIndex = i;
+            }// OF if
+        }// Of for i
+        return resultBestIndex;
+    }// OF classifyNominal
+
+    /**
+     * Classify an instances with numerical data.
+     */
+    public int classifyNumerical(Instance paraInstance) {
+        //Find the biggest one
+        double tempBiggest = -10000;
+        int resultBestIndex = 0;
+
+        for (int i = 0; i < numClasses; i++) {
+            double tempPseudoProbability = Math.log(classDistributionLaplacian[i]);
+            for (int j = 0; j < numConditions; j++) {
+                double tempAttributeValue = paraInstance.value(j);
+                double tempSigma = gaussianParameters[i][j].sigma;
+                double tempMu = gaussianParameters[i][j].mu;
+
+                tempPseudoProbability += -Math.log(tempSigma) - (tempAttributeValue - tempMu) * (tempAttributeValue - tempMu) / (2 * tempSigma * tempSigma);
+            }// Of for j
+
+            if (tempBiggest < tempPseudoProbability) {
+                tempBiggest = tempPseudoProbability;
+                resultBestIndex = i;
+            }// Of if
+        }// OF for i
+
+        return resultBestIndex;
+    }// OF classifyNumerical
+
+    /**
+     * Compute accuracy.
+     */
+    public double computeAccuracy() {
+        double tempCorrect = 0;
+        for (int i = 0; i < numInstances; i++) {
+            if (predicts[i] == (int) dataset.instance(i).classValue()) {
+                tempCorrect++;
+            }//Of if
+        }// oF for i
+
+        return tempCorrect / numInstances;
+    }//OF computeAccuracy
+
+    /**
+     * Test nominal data.
+     */
+    public static void testNominal() {
+        System.out.println("Hello, Naive Bayes. I only want to test the nominal data. ");
+        String tempFileName = "E:\\java_code\\data\\sampledata\\mushroom.arff";
+
+        NaiveBayes tempLearner = new NaiveBayes(tempFileName);
+        tempLearner.setDataType(NOMINAL);
+        tempLearner.calculateClassDistribution();
+        tempLearner.calculateConditionalProbabilities();
+        tempLearner.classify();
+
+        System.out.println("The accuracy is: " + tempLearner.computeAccuracy());
+    }//Of testNominal
+
+    /**
+     * Test numerical data.
+     */
+    public static void testNumerical() {
+        System.out.println("Hello, Naive Bayes. I only want to test the numerical data with Gaussian assumption.");
+        String tempFileName = "E:/java_code/data/sampledata\\iris.arff";
+
+        NaiveBayes tempLearner = new NaiveBayes(tempFileName);
+        tempLearner.setDataType(NUMERICAL);
+        tempLearner.calculateClassDistribution();
+        tempLearner.calculateGaussianParameters();
+        tempLearner.classify();
+
+        System.out.println("The accuracy is: " + tempLearner.computeAccuracy());
+    }// Of testNumerical
+
 
     /**
      * The entrance of the program.
@@ -206,25 +361,7 @@ public class NaiveBayes {
      * @param args Not used now.
      */
     public static void main(String[] args) {
-
-    }
-
-    public static void testNominal(double paraTrainingFraction) {
-        System.out.println("Hello, Naive Bayes. I only want to  test the nominal data. ");
-        String tempFileName = "E:\\java_code\\data\\sampledata\\mushroom.arff";
-
-        Instances tempDataset = null;
-        try {
-            FileReader fileReader = new FileReader(tempFileName);
-            tempDataset = new Instances(fileReader);
-            fileReader.close();
-        } catch (Exception ee) {
-            System.out.println("Cannot read the file :" + tempFileName + "\r\n" + ee);
-            System.exit(0);
-        }// of try
-
-        Instances[] tempDatasets = splitTrainingTesting(tempDataset, paraTrainingFraction);
-
-
-    }
-}
+        testNominal();
+        testNumerical();
+    }// OF main
+}//OF class NaiveBayes
