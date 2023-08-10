@@ -16,4 +16,30 @@ public class ID3 {
      */
     Instances dataset;
 
+    /**
+     * Is the dataset pure(Only one label)?
+     */
+    boolean pure;
+
+    /**
+     * The number of classes. For binary classification it is 2.
+     */
+    int numClasses;
+
+    /**
+     * Available instances. Other instances do not belong this branch.
+     */
+    int[] availableInstances;
+
+    /**
+     * Available attributes. Other attributes have been selected int the path from the root.
+     */
+    int[] availableAttributes;
+
+    /**
+     * The selected attribute.
+     */
+    int splitAttributes;
+
+    
 }
