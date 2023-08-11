@@ -139,23 +139,50 @@ public class ID3 {
      * @return The majority class.
      */
     public int getMajorityClass(int[] paraBlock) {
-        int[]tempClassCounts=new int[dataset.numClasses()];
+        int[] tempClassCounts = new int[dataset.numClasses()];
         for (int i = 0; i < paraBlock.length; i++) {
-            tempClassCounts[(int)dataset.instance(paraBlock[i]).classValue()]++;
+            tempClassCounts[(int) dataset.instance(paraBlock[i]).classValue()]++;
         }//OF for i
 
-        int resultMajorityClass=-1;
-        int tempMaxCount=-1;
+        int resultMajorityClass = -1;
+        int tempMaxCount = -1;
         for (int i = 0; i < tempClassCounts.length; i++) {
-            if(tempMaxCount<tempClassCounts[i]){
-                resultMajorityClass=i;
-                tempMaxCount=tempClassCounts[i];
+            if (tempMaxCount < tempClassCounts[i]) {
+                resultMajorityClass = i;
+                tempMaxCount = tempClassCounts[i];
             }//Of if
         }//Of for i
 
         return resultMajorityClass;
     }//Of getMajorityClass
 
+    /**
+     * Select the best attribute.
+     *
+     * @return The best attribute index.
+     */
+    public int selectBestAttribute() {
+        splitAttributes = -1;
+        double tempMinimalEntropy = 10000;
+        double tempEntropy;
+        for (int i = 0; i < availableAttributes.length; i++) {
+            tempEntropy = conditionalEntropy(availableAttributes[i]);
+            if (tempMinimalEntropy > tempEntropy) {
+                tempMinimalEntropy = tempEntropy;
+                splitAttributes = availableAttributes[i];
+            }//Of if
+        }//Of for i
+        return splitAttributes;
+    }//Of selectBestAttribute
 
+    /**
+     * Compute the conditional entropy of an attribute.
+     *
+     * @param paraAttribute The given attribute.
+     * @return The entropy.
+     */
+    public double conditionalEntropy(int paraAttribute) {
+        return 0;
+    }
 
 }
