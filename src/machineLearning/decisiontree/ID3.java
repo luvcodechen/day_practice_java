@@ -103,10 +103,10 @@ public class ID3 {
     /**
      * The constructor.
      */
-    public ID3(Instances paraDataset, int[] parAvailableInstances, int[] paraAvailableAttributes) {
+    public ID3(Instances paraDataset, int[] paraAvailableInstances, int[] paraAvailableAttributes) {
         //Copy its reference instead of clone the availableInstances.
         dataset = paraDataset;
-        availableInstances = parAvailableInstances;
+        availableInstances = paraAvailableInstances;
         availableAttributes = paraAvailableAttributes;
 
         //Initialize.
