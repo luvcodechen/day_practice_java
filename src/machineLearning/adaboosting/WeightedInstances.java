@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * ClassName: WeightedInstances
  * Package: machineLearning.adaboosting
- * Description:
+ * Description:Weighted instances.
  *
  * @Author: luv_x_c
  * @Create: 2023/8/13 15:12
