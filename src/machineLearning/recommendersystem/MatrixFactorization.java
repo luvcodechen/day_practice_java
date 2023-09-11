@@ -61,8 +61,13 @@ public class MatrixFactorization {
             rating = paraRating;
         }//Of the second constructor
 
+        @Override
         public String toString() {
-            return "" + user + ", " + item + ", " + rating;
-        }// Of toString
+            return "Triple{" +
+                    "user=" + user +
+                    ", item=" + item +
+                    ", rating=" + rating +
+                    '}';
+        }
     }//Of class Triple
 }// Of class MatrixFactorization
